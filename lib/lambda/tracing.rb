@@ -7,12 +7,19 @@ module Lambda
   module Tracing
     class Error < StandardError; end
 
-    def self.wrapped_handler(event:, context:)
-      init_tracer
+    def self.wrap_function(event, context)
+      init_tracer if !@tracer
 
-      puts OpenTracing.global_tracer
-      puts context.inspect
+      response = nil
+      OpenTracing.start_active_span("lambda_ruby_#{context.function_name}", tags: build_tags(context)) do |scope|
+        response = yield
+      end
 
+      @reporter.flush
+      response
+    end
+
+    def build_tags(context)
       tags = {
         'component' => 'ruby-lambda-wrapper',
         'lambda_arn' => context.invoked_function_arn,
@@ -23,18 +30,10 @@ module Lambda
       }
 
       tags = tags.merge(tags_from_arn(context.invoked_function_arn))
-
-      response = nil
-      @tracer.start_active_trace("lambda_ruby_#{context.function_name}", tags: tags) do |scope|
-        response = @handler.call(event: event, context: context)
-      end
-
-      @reporter.flush
-      response
     end
 
     def self.tags_from_arn(arn)
-      _, _, _, region, account_id, resource_type, resource, qualifier
+      _, _, _, region, account_id, resource_type, resource, qualifier = arn.split(':')
 
       tags = {
         'aws_region' => region,
@@ -44,6 +43,12 @@ module Lambda
       tags['event_function_qualifier'] = qualifier if qualifier && resource_type == 'event-source-mapping'
 
       tags
+    end
+
+    def self.wrapped_handler(event:, context:)
+      wrap_function(event, context) do
+        @handler.call(event: event, context: context)
+      end
     end
 
     def self.register_handler(&handler)
@@ -57,7 +62,7 @@ module Lambda
 
       # configure the trace reporter
       headers = { }
-      headers['X-SF-Token'] = access_token if !access_token.empty
+      headers['X-SF-Token'] = access_token if !access_token.empty?
       encoder = Jaeger::Client::Encoders::ThriftEncoder.new(service_name: service_name)
       sender = Jaeger::Client::HttpSender.new(url: ingest_url, headers: headers, encoder: encoder, logger: Logger.new(STDOUT))
       @reporter = Jaeger::Client::Reporters::RemoteReporter.new(sender: sender, flush_interval: 1)
@@ -71,10 +76,13 @@ module Lambda
       }
 
       OpenTracing.global_tracer = Jaeger::Client.build(
+        service_name: service_name,
         reporter: @reporter,
         injectors: injectors,
         extractors: extractors
       )
+
+      @tracer = OpenTracing.global_tracer
     end
   end
 end
