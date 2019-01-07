@@ -23,7 +23,7 @@ Add this line to the top of your file:
 require 'lambda/tracing'
 ```
 
-To use the wrapper, the original `handler` can be wrapped as a separate handler:
+To use the wrapper, the original `handler` can be wrapped in a block:
 
 ```ruby
 def wrapping_handler(event:, context:)

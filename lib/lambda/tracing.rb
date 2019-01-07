@@ -7,17 +7,23 @@ module Lambda
   module Tracing
     class Error < StandardError; end
 
-    def self.wrap_function(event, context)
+    def self.wrap_function(event, context, &block)
       init_tracer if !@tracer # avoid initializing except on a cold start
 
       response = nil
       OpenTracing.start_active_span("lambda_ruby_#{context.function_name}", tags: build_tags(context)) do |scope|
-        response = yield
+        response = yield event: event, context:context
+
+        scope.span.set_tag("http.status_code", response['status_code']) if response['status_code']
       end
 
       # flush the spans before leaving the execution context
       @reporter.flush
       response
+    end
+
+    def self.wrapped_handler(event:, context:)
+      wrap_function(event, context, &@handler)
     end
 
     def build_tags(context)
@@ -51,12 +57,6 @@ module Lambda
       end
 
       tags
-    end
-
-    def self.wrapped_handler(event:, context:)
-      wrap_function(event, context) do
-        @handler.call(event: event, context: context) if @handler
-      end
     end
 
     def self.register_handler(&handler)
