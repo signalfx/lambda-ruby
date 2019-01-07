@@ -65,6 +65,8 @@ The span will be named with the pattern  `lambda_ruby_<function_name>`.
 Each span will also have the following tags:
 - `component`: ruby-lambda-wrapper
 - `lambda_arn`: the full ARN of the invocation
+- `aws_region`: the region that the function executed in
+- `aws_account_id`: id of the account this function ran for
 - `aws_function_name`: the function name set for this Lambda
 - `aws_function_version`: the function version
 - `aws_execution_env`: the name of the runtime environment running this function
