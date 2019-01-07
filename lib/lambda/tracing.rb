@@ -8,13 +8,14 @@ module Lambda
     class Error < StandardError; end
 
     def self.wrap_function(event, context)
-      init_tracer if !@tracer
+      init_tracer if !@tracer # avoid initializing except on a cold start
 
       response = nil
       OpenTracing.start_active_span("lambda_ruby_#{context.function_name}", tags: build_tags(context)) do |scope|
         response = yield
       end
 
+      # flush the spans before leaving the execution context
       @reporter.flush
       response
     end
@@ -33,21 +34,28 @@ module Lambda
     end
 
     def self.tags_from_arn(arn)
-      _, _, _, region, account_id, resource_type, resource, qualifier = arn.split(':')
+      _, _, _, region, account_id, resource_type, _, qualifier = arn.split(':')
 
       tags = {
         'aws_region' => region,
         'aws_account_id' => account_id,
       }
-      tags['aws_function_qualifier'] = qualifier if qualifier && resource_type == 'function'
-      tags['event_function_qualifier'] = qualifier if qualifier && resource_type == 'event-source-mapping'
+
+      if qualifier
+        case resource_type
+        when 'function'
+          tags['aws_function_qualifier'] = qualifier
+        when 'event-source-mappings'
+          tags['event_source_mappings'] = qualifier
+        end
+      end
 
       tags
     end
 
     def self.wrapped_handler(event:, context:)
       wrap_function(event, context) do
-        @handler.call(event: event, context: context)
+        @handler.call(event: event, context: context) if @handler
       end
     end
 
