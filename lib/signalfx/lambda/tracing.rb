@@ -1,3 +1,5 @@
+require 'signalfx/lambda/tracing/extractors'
+
 require 'opentracing'
 require 'jaeger/client'
 
@@ -13,7 +15,7 @@ module SignalFx
         OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}", tags: build_tags(context)) do |scope|
           response = yield event: event, context:context
 
-          scope.span.set_tag("http.status_code", response['status_code']) if response['status_code']
+          scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
         end
 
         # flush the spans before leaving the execution context
@@ -25,7 +27,7 @@ module SignalFx
         wrap_function(event, context, &@handler)
       end
 
-      def build_tags(context)
+      def self.build_tags(context)
         tags = {
           'component' => 'ruby-lambda-wrapper',
           'lambda_arn' => context.invoked_function_arn,
@@ -83,7 +85,7 @@ module SignalFx
           OpenTracing::FORMAT_TEXT_MAP => [Jaeger::Client::Injectors::B3RackCodec]
         }
         extractors = {
-          OpenTracing::FORMAT_TEXT_MAP => [Jaeger::Client::Extractors::B3TextMapCodec]
+          OpenTracing::FORMAT_TEXT_MAP => [SignalFx::Lambda::Tracing::B3TextMapCodec]
         }
 
         OpenTracing.global_tracer = Jaeger::Client.build(
