@@ -1,16 +1,16 @@
 
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "lambda/tracing/version"
+require "signalfx/lambda/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "lambda-tracing"
-  spec.version       = SignalFx::Lambda::Tracing::VERSION
+  spec.name          = "signalfx-lambda"
+  spec.version       = SignalFx::Lambda::VERSION
   spec.authors       = ["Ashwin Chandrasekar"]
   spec.email         = ["achandrasekar@signalfx.com"]
 
-  spec.summary       = %q{Tracing Lambda handler wrapper}
-  spec.homepage      = "https://github.com/signalfx/lambda-ruby-tracing"
+  spec.summary       = %q{Lambda handler wrapper}
+  spec.homepage      = "https://github.com/signalfx/lambda-ruby"
   spec.license       = "MIT"
 
   # Specify which files should be added to the gem when it is released.

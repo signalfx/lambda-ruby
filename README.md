@@ -1,4 +1,4 @@
-# SignalFx::Lambda::Tracing
+# SignalFx::Lambda
 
 This gem provides a simplified way to trace AWS Lambda functions written for the
 Ruby 2.5 runtime.
@@ -8,7 +8,7 @@ Ruby 2.5 runtime.
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'lambda-tracing'
+gem 'signalfx-lambda'
 ```
 
 And then execute:
@@ -20,7 +20,7 @@ And then execute:
 Add this line to the top of your file:
 
 ```ruby
-require 'lambda/tracing'
+require 'signalfx/lambda'
 ```
 
 To use the wrapper, the original `handler` can be wrapped in a block:
@@ -105,7 +105,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/signalfx/lambda-tracing.
+Bug reports and pull requests are welcome on GitHub at https://github.com/signalfx/lambda-ruby.
 
 ## License
 

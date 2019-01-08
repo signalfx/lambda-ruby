@@ -1,5 +1,3 @@
-require "lambda/tracing/version"
-
 require 'opentracing'
 require 'jaeger/client'
 
@@ -37,7 +35,7 @@ module SignalFx
           'aws_execution_env' => ENV['AWS_EXECUTION_ENV'],
           'log_group_name' => context.log_group_name,
           'log_stream_name' => context.log_stream_name,
-          'function_wrapper_version' => "lambda-tracing-#{SignalFx::Lambda::Tracing::VERSION}",
+          'function_wrapper_version' => "signalfx-lambda-#{SignalFx::Lambda::VERSION}",
         }
 
         tags = tags.merge(tags_from_arn(context.invoked_function_arn))
