@@ -11,16 +11,25 @@ module SignalFx
       def self.wrap_function(event, context, &block)
         init_tracer if !@tracer # avoid initializing except on a cold start
 
-        response = nil
-        OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}", tags: build_tags(context)) do |scope|
-          response = yield event: event, context:context
+        scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}", tags: build_tags(context))
 
-          scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
+        response = yield event: event, context:context
+        scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
+
+        response
+      rescue => error
+        if scope
+          scope.span.set_tag("error", true)
+          scope.span.log_kv(key: "message", value: error.message)
         end
+
+        # pass this error up
+        raise
+      ensure
+        scope.close if scope
 
         # flush the spans before leaving the execution context
         @reporter.flush
-        response
       end
 
       def self.wrapped_handler(event:, context:)
