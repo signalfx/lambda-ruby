@@ -9,11 +9,11 @@ module SignalFx
       class Error < StandardError; end
 
       def self.wrap_function(event, context, &block)
-        init_tracer if !@tracer # avoid initializing except on a cold start
+        init_tracer(event) if !@tracer # avoid initializing except on a cold start
 
         scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}", tags: build_tags(context))
 
-        response = yield event: event, context:context
+        response = yield event: event, context: context
         scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
 
         response
@@ -76,10 +76,10 @@ module SignalFx
         @handler = handler
       end
 
-      def self.init_tracer
+      def self.init_tracer(event)
         access_token = ENV['SIGNALFX_ACCESS_TOKEN']
         ingest_url = ENV['SIGNALFX_INGEST_URL'] || 'https://ingest.signalfx.com/v1/trace'
-        service_name = ENV['SIGNALFX_SERVICE_NAME'] || 'signalfx_lambda_tracing'
+        service_name = ENV['SIGNALFX_SERVICE_NAME'] || event.function_name
         @span_prefix = ENV['SIGNALFX_SPAN_PREFIX'] || 'lambda_ruby_'
 
         # configure the trace reporter
