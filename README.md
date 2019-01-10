@@ -82,6 +82,27 @@ Each span will also have the following tags:
 
 If a `qualifier` is present in the ARN, depending on the resource type, either `aws_function_qualifier` or `event_source_mappings` will be tagged.
 
+## Manual Tracing
+
+Manual tracing may be useful to get a better view into the function. The
+OpenTracing global tracer makes the tracer used by the wrapper available
+to when more specific instrumentation is desired.
+
+```ruby
+require 'opentracing'
+
+OpenTracing.global_tracer.start_active_span("span_name") do |scope|
+
+    work_to_be_traced
+
+end
+```
+
+These manually created spans will automatically be nested, with the span for the
+Lambda handler as the parent.
+
+For more examples of usage, please see [opentracing-ruby](https://github.com/opentracing/opentracing-ruby).
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
