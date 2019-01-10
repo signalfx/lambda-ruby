@@ -23,27 +23,10 @@ Add this line to the top of your file:
 require 'signalfx/lambda'
 ```
 
-To use the wrapper, the original `handler` can be wrapped in a block:
-
-```ruby
-# this is the original handler
-def handler(event:, context:)
-    JSON.generate(body)
-end
-
-def wrapping_handler(event:, context:)
-    SignalFx::Lambda::Tracing.wrap_function(event, context) do
-        handler(event: event, context: context)
-    end
-end
-```
-
-In the AWS console, setting the handler `source.wrapping_handler` will trace and pass on the call to
-the original handler.
-
-For a slightly more hands-off approach, register `source.SignalFx::Lambda::Tracing.wrapped_handler`
-in the console. Then somewhere after your handler function definition, the
-function can be registered to be automatically traced:
+To use the wrapper, register `source.SignalFx::Lambda::Tracing.wrapped_handler`
+in the console, where `source` is your Ruby source file. Then somewhere after
+your handler function definition, the function can be registered to be
+automatically traced:
 
 ```ruby
 # this is the original handler
@@ -54,7 +37,7 @@ end
 SignalFx::Lambda::Tracing.register_handler(&method(:handler))
 ```
 
-There are no differences in the traces produced by either method.
+`register_handler` will accept any block.
 
 ### Tracer configuration
 
@@ -66,17 +49,19 @@ SIGNALFX_INGEST_URL
 SIGNALFX_SERVICE_NAME
 ```
 
-The ingest URL defaults to `https://ingest.signalfx.com/v1/trace`, which
-requires an access token to be configured. When the ingest URL points to a
-[Smart Gateway](https://docs.signalfx.com/en/latest/apm/apm-deployment/smart-gateway.html), the access token is not required.
+In production, `SIGNALFX_INGEST_URL` should be pointing to your [Smart Gateway](https://docs.signalfx.com/en/latest/apm/apm-deployment/smart-gateway.html).
+When pointing to the Smart Gateway, an access token is not needed. When not
+configured, the ingest URL defaults to `https://ingest.signalfx.com/v1/trace`,
+which requires an access token to be configured.
 
-The tracer will be persisted across invocations to the same context, reducing the time needed for tracer initialization.
+The tracer will be persisted across invocations to the same context, reducing
+the time needed for tracer initialization.
 
 ## Trace and tags
 
-The span will be named with the pattern  `lambda_ruby_<function_name>`. The span
-prefix can be optionally configured with the `SIGNALFX_SPAN_PREFIX` environment
-variable:
+The wrapper will generate a single span per function invocation. This span will
+be named with the pattern  `lambda_ruby_<function_name>`. The span prefix can be
+optionally configured with the `SIGNALFX_SPAN_PREFIX` environment variable:
 
     $ SIGNALFX_SPAN_PREFIX=custom_prefix_
 
