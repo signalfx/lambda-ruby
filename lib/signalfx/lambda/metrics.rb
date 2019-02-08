@@ -6,74 +6,67 @@ module SignalFx
       class Error < StandardError; end
 
       def self.wrap_function(event:, context:)
+        cold_start = @client.nil?
+
         init_client unless @client
 
-        start_time = Time.now
-
-        response = yield event: event, context: context
-
-        end_time = Time.now
-        duration = (end_time - start_time).strftime('%s%L') duration in ms
-
         dimensions = populate_dimensions(context)
+
+        # time execution of next block
+        start_time = Time.now
+        response = yield event: event, context: context
+        end_time = Time.now
+
+        duration = (end_time - start_time).strftime('%s%L') # duration in ms
 
         counters = [
           { 
             :metric => 'function.invocations',
-            :value => '',
-            :timestamp => end_time,
-            :dimensions => dimensions
-          },
-          {
-            :metric => 'function.cold_starts',
-            :value => '',
-            :timestamp => end_time,
-            :dimensions => dimensions
-          },
-          {
-            :metric => 'function.errors',
-            :value => '',
+            :value => 1,
             :timestamp => end_time,
             :dimensions => dimensions
           }
         ]
+
+        counters.push(
+          {
+            :metric => 'function.cold_starts',
+            :value => 1,
+            :timestamp => end_time,
+            :dimensions => dimensions
+          }
+        ) if cold_start
 
         gauges = [
           {
             :metric => 'function.duration',
-            :value => '',
+            :value => duration,
             :timestamp => end_time,
             :dimensions => dimensions
           }
         ]
 
-
-        @client.send(gauges: gauges, counter: counters)
+        response
       rescue => error
-        puts "error #{error}"
+        error_counter = {
+          :metric => 'function.errors',
+          :value => 1,
+          :timestamp => end_time,
+          :dimensions => dimensions
+        }
+
+        counters.push(error_counter)
+
+        raise
+      ensure
+        # send metrics before leaving this block
+        @client.send(gauges: gauges, counter: counters)
       end
 
       def populate_dimensions(context)
-        _, _, _, region, account_id, resource_type, _, qualifier = arn.split(':')
-
-        dimensions = [
-          { :key => 'lambda_arn', :value => context.invoked_function_arn },
-          { :key => 'aws_region', :value => region },
-          { :key => 'aws_account_id', :value => account_id },
-          { :key => 'aws_function_name', :value => context.function_name },
-          { :key => 'aws_function_version', :value => context.function_version },
-          { :key => 'aws_execution_env', :value => ENV['AWS_EXECUTION_ENV'] },
-          { :key => 'function_wrapper_version', :value => "signalfx-lambda-#{::SignalFx::Lambda::VERSION}" },
-          { :key => 'metric_source', :value => 'ruby-lambda-wrapper'},
-        ]
-
-        if qualifier
-          case resource_type
-          when 'function'
-            dimensions.add({ :key => 'aws_function_qualifier', :value => qualifier })
-          when 'event_source_mappings'
-            dimensions.add({ :key => 'event_source_mappings', :value => qualifier })
-          end
+        dimensions = []
+        SignalFx::Lambda.fields.each do |key, val|
+          dimensions.push({ :key => key, :value => value })
         end
       end
 

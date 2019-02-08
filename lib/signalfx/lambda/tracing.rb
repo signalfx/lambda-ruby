@@ -11,7 +11,8 @@ module SignalFx
       def self.wrap_function(event, context, &block)
         init_tracer(event) if !@tracer # avoid initializing except on a cold start
 
-        scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}", tags: build_tags(context))
+        scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}",
+                                              tags: SignalFx::Lambda.fields)
 
         response = yield event: event, context: context
         scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
@@ -34,42 +35,6 @@ module SignalFx
 
       def self.wrapped_handler(event:, context:)
         wrap_function(event, context, &@handler)
-      end
-
-      def self.build_tags(context)
-        tags = {
-          'component' => 'ruby-lambda-wrapper',
-          'lambda_arn' => context.invoked_function_arn,
-          'aws_request_id' => context.aws_request_id,
-          'aws_function_name' => context.function_name,
-          'aws_function_version' => context.function_version,
-          'aws_execution_env' => ENV['AWS_EXECUTION_ENV'],
-          'log_group_name' => context.log_group_name,
-          'log_stream_name' => context.log_stream_name,
-          'function_wrapper_version' => "signalfx-lambda-#{SignalFx::Lambda::VERSION}",
-        }
-
-        tags = tags.merge(tags_from_arn(context.invoked_function_arn))
-      end
-
-      def self.tags_from_arn(arn)
-        _, _, _, region, account_id, resource_type, _, qualifier = arn.split(':')
-
-        tags = {
-          'aws_region' => region,
-          'aws_account_id' => account_id,
-        }
-
-        if qualifier
-          case resource_type
-          when 'function'
-            tags['aws_function_qualifier'] = qualifier
-          when 'event-source-mappings'
-            tags['event_source_mappings'] = qualifier
-          end
-        end
-
-        tags
       end
 
       def self.register_handler(&handler)
