@@ -48,12 +48,13 @@ module SignalFx
     #   # Metrics.client.send
     # end
 
-    def self.register_handler(&handler, metrics: true, tracing: true)
+    def self.register_handler(metrics: true, tracing: true, &handler)
       @handler = handler # the original handler
 
       # Add the wrappers needed
-      wrappers.add(Tracing.method(:wrap_function) if tracing
-      wrappers.add(Metrics.method(:wrap_function) if metrics
+      wrappers = []
+      wrappers.add(Tracing.method(:wrap_function)) if tracing
+      wrappers.add(Metrics.method(:wrap_function)) if metrics
       wrappers.add(@handler)
 
       @wrapped_handler = build_wrapped_handler(wrappers) if @wrapped_handler.nil?
