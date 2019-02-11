@@ -5,77 +5,82 @@ module SignalFx
     module Metrics
       class Error < StandardError; end
 
-      def self.wrap_function(event:, context:)
-        cold_start = @client.nil?
-        init_client unless @client
-        counters = []
-        gauges = []
+      class << self
+        attr_accessor :client
 
-        dimensions = populate_dimensions(context)
+        def wrap_function(event:, context:)
+          cold_start = @client.nil?
+          init_client unless @client
+          counters = []
+          gauges = []
 
-        # time execution of next block
-        start_time = Time.now
-        response = yield event: event, context: context
-        end_time = Time.now
+          dimensions = populate_dimensions(context)
 
-        duration = ((end_time - start_time) * 1000) # duration in ms
-        end_time = end_time.strftime('%s%L')
+          # time execution of next block
+          start_time = Time.now
+          response = yield event: event, context: context
+          end_time = Time.now
 
-        counters.push(
-          { 
-            :metric => 'function.invocations',
+          duration = ((end_time - start_time) * 1000) # duration in ms
+          end_time = end_time.strftime('%s%L')
+
+          counters.push(
+            {
+              :metric => 'function.invocations',
+              :value => 1,
+              :timestamp => end_time,
+              :dimensions => dimensions
+            }
+          )
+
+          counters.push(
+            {
+              :metric => 'function.cold_starts',
+              :value => 1,
+              :timestamp => end_time,
+              :dimensions => dimensions
+            }
+          ) if cold_start
+
+          gauges = [
+            {
+              :metric => 'function.duration',
+              :value => duration,
+              :timestamp => end_time,
+              :dimensions => dimensions
+            }
+          ]
+
+          response
+        rescue => error
+          error_counter = {
+            :metric => 'function.errors',
             :value => 1,
             :timestamp => end_time,
             :dimensions => dimensions
           }
-        )
 
-        counters.push(
-          {
-            :metric => 'function.cold_starts',
-            :value => 1,
-            :timestamp => end_time,
-            :dimensions => dimensions
-          }
-        ) if cold_start
+          counters.push(error_counter)
 
-        gauges = [
-          {
-            :metric => 'function.duration',
-            :value => duration,
-            :timestamp => end_time,
-            :dimensions => dimensions
-          }
-        ]
-
-        response
-      rescue => error
-        error_counter = {
-          :metric => 'function.errors',
-          :value => 1,
-          :timestamp => end_time,
-          :dimensions => dimensions
-        }
-
-        counters.push(error_counter)
-
-        raise
-      ensure
-        # send metrics before leaving this block
-        @client.send(gauges: gauges, counters: counters) if @client
-      end
-
-      def self.populate_dimensions(context)
-        SignalFx::Lambda.fields.map do |key, val|
-          { :key => key, :value => val }
+          raise
+        ensure
+          # send metrics before leaving this block
+          @client.send(gauges: gauges, counters: counters) if @client
         end
-      end
 
-      def self.init_client
-        access_token = ENV['SIGNALFX_ACCESS_TOKEN']
-        ingest_endpoint = ENV['SIGNALFX_METRICS_URL']
+        def populate_dimensions(context)
+          dimensions = SignalFx::Lambda.fields.map do |key, val|
+            { :key => key, :value => val }
+          end
+          dimensions.merge!({ :key => 'metric_source', :value => SignalFx::Lambda::COMPONENT })
+        end
 
-        @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint
+        def init_client
+          access_token = ENV['SIGNALFX_ACCESS_TOKEN']
+          ingest_endpoint = ENV['SIGNALFX_METRICS_URL']
+
+          @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint
+        end
       end
     end
   end

@@ -6,6 +6,8 @@ module SignalFx
   module Lambda
     class Error < StandardError; end
 
+    COMPONENT = 'ruby-lambda-wrapper'.freeze
+
     class << self
       attr_accessor :fields
 
@@ -40,7 +42,6 @@ module SignalFx
       # build a map of useful properties from the context object
       def gather_fields(context)
         fields = {
-          'component' => 'ruby-lambda-wrapper',
           'lambda_arn' => context.invoked_function_arn,
           'aws_request_id' => context.aws_request_id,
           'aws_function_name' => context.function_name,

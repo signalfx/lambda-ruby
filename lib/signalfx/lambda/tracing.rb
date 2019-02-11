@@ -8,68 +8,75 @@ module SignalFx
     module Tracing
       class Error < StandardError; end
 
-      def self.wrap_function(event:, context:, &block)
-        init_tracer(event) if !@tracer # avoid initializing except on a cold start
+      class << self
+        attr_accessor :tracer, :reporter
 
-        scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}",
-                                              tags: SignalFx::Lambda.fields)
+        def wrap_function(event:, context:, &block)
+          init_tracer(event) if !@tracer # avoid initializing except on a cold start
 
-        response = yield event: event, context: context
-        scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
+          tags = SignalFx::Lambda.fields
+          tags['component'] = SignalFx::Lambda::COMPONENT
 
-        response
-      rescue => error
-        if scope
-          scope.span.set_tag("error", true)
-          scope.span.log_kv(key: "message", value: error.message)
+          scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}",
+                                                tags: tags)
+
+          response = yield event: event, context: context
+          scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
+
+          response
+        rescue => error
+          if scope
+            scope.span.set_tag("error", true)
+            scope.span.log_kv(key: "message", value: error.message)
+          end
+
+          # pass this error up
+          raise
+        ensure
+          scope.close if scope
+
+          # flush the spans before leaving the execution context
+          @reporter.flush
         end
 
-        # pass this error up
-        raise
-      ensure
-        scope.close if scope
+        def wrapped_handler(event:, context:)
+          wrap_function(event, context, &@handler)
+        end
 
-        # flush the spans before leaving the execution context
-        @reporter.flush
-      end
+        def register_handler(&handler)
+          @handler = handler
+        end
 
-      def self.wrapped_handler(event:, context:)
-        wrap_function(event, context, &@handler)
-      end
+        def init_tracer(event)
+          access_token = ENV['SIGNALFX_ACCESS_TOKEN']
+          ingest_url = ENV['SIGNALFX_TRACING_URL'] || 'https://ingest.signalfx.com/v1/trace'
+          service_name = ENV['SIGNALFX_SERVICE_NAME'] || event.function_name
+          @span_prefix = ENV['SIGNALFX_SPAN_PREFIX'] || 'lambda_ruby_'
 
-      def self.register_handler(&handler)
-        @handler = handler
-      end
+          # configure the trace reporter
+          headers = { }
+          headers['X-SF-Token'] = access_token if !access_token.empty?
+          encoder = Jaeger::Client::Encoders::ThriftEncoder.new(service_name: service_name)
+          sender = Jaeger::Client::HttpSender.new(url: ingest_url, headers: headers, encoder: encoder, logger: Logger.new(STDOUT))
+          @reporter = Jaeger::Client::Reporters::RemoteReporter.new(sender: sender, flush_interval: 1)
 
-      def self.init_tracer(event)
-        access_token = ENV['SIGNALFX_ACCESS_TOKEN']
-        ingest_url = ENV['SIGNALFX_INGEST_URL'] || 'https://ingest.signalfx.com/v1/trace'
-        service_name = ENV['SIGNALFX_SERVICE_NAME'] || event.function_name
-        @span_prefix = ENV['SIGNALFX_SPAN_PREFIX'] || 'lambda_ruby_'
+          # propagation format configuration
+          injectors = {
+            OpenTracing::FORMAT_TEXT_MAP => [Jaeger::Client::Injectors::B3RackCodec]
+          }
+          extractors = {
+            OpenTracing::FORMAT_TEXT_MAP => [SignalFx::Lambda::Tracing::B3TextMapCodec]
+          }
 
-        # configure the trace reporter
-        headers = { }
-        headers['X-SF-Token'] = access_token if !access_token.empty?
-        encoder = Jaeger::Client::Encoders::ThriftEncoder.new(service_name: service_name)
-        sender = Jaeger::Client::HttpSender.new(url: ingest_url, headers: headers, encoder: encoder, logger: Logger.new(STDOUT))
-        @reporter = Jaeger::Client::Reporters::RemoteReporter.new(sender: sender, flush_interval: 1)
+          OpenTracing.global_tracer = Jaeger::Client.build(
+            service_name: service_name,
+            reporter: @reporter,
+            injectors: injectors,
+            extractors: extractors
+          )
 
-        # propagation format configuration
-        injectors = {
-          OpenTracing::FORMAT_TEXT_MAP => [Jaeger::Client::Injectors::B3RackCodec]
-        }
-        extractors = {
-          OpenTracing::FORMAT_TEXT_MAP => [SignalFx::Lambda::Tracing::B3TextMapCodec]
-        }
-
-        OpenTracing.global_tracer = Jaeger::Client.build(
-          service_name: service_name,
-          reporter: @reporter,
-          injectors: injectors,
-          extractors: extractors
-        )
-
-        @tracer = OpenTracing.global_tracer
+          @tracer = OpenTracing.global_tracer
+        end
       end
     end
   end
