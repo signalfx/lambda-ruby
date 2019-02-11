@@ -39,6 +39,8 @@ SignalFx::Lambda.register_handler(metrics: true, tracing: true, &method(:handler
 
 `register_handler` will accept any block.
 
+If passing in a block parameter, it must be the last argument.
+
 It also takes these optional arguments:
 - `metrics`: Enable reporting of metrics. Default: `true`
 - `tracing`: Enable tracing. Default: `true`
