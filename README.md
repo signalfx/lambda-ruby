@@ -1,7 +1,7 @@
 # SignalFx::Lambda
 
-This gem provides a simplified way to trace AWS Lambda functions written for the
-Ruby 2.5 runtime.
+This gem provides a simplified way to get metrics and traces from AWS Lambda
+functions written for the Ruby 2.5 runtime.
 
 ## Installation
 
@@ -34,10 +34,14 @@ def handler(event:, context:)
     JSON.generate(body)
 end
 
-SignalFx::Lambda::Tracing.register_handler(&method(:handler))
+SignalFx::Lambda.register_handler(metrics: true, tracing: true, &method(:handler))
 ```
 
 `register_handler` will accept any block.
+
+It also takes these optional arguments:
+- `metrics`: Enable reporting of metrics. Default: `true`
+- `tracing`: Enable tracing. Default: `true`
 
 ### Tracer configuration
 
@@ -45,17 +49,31 @@ The tracer used by the function is configured through environment variables:
 
 ```
 SIGNALFX_ACCESS_TOKEN
-SIGNALFX_INGEST_URL
 SIGNALFX_SERVICE_NAME
+SIGNALFX_TRACING_URL
 ```
 
-In production, `SIGNALFX_INGEST_URL` should be pointing to your [Smart Gateway](https://docs.signalfx.com/en/latest/apm/apm-deployment/smart-gateway.html).
+In production, `SIGNALFX_TRACING_URL` should be pointing to your [Smart Gateway](https://docs.signalfx.com/en/latest/apm/apm-deployment/smart-gateway.html).
 When pointing to the Smart Gateway, an access token is not needed. When not
 configured, the ingest URL defaults to `https://ingest.signalfx.com/v1/trace`,
 which requires an access token to be configured.
 
 The tracer will be persisted across invocations to the same context, reducing
 the time needed for tracer initialization.
+
+### SignalFx client configuration
+
+The SignalFx client requires the following environment variables to be set:
+
+```
+SIGNALFX_ACCESS_TOKEN
+SIGNALFX_METRICS_URL
+```
+
+When `SIGNALFX_METRICS_URL` is pointing to a Gateway in production, the access
+token is not needed.
+
+The metrics URL will default to `https://ingest.signalfx.com` when not configured.
 
 ## Trace and tags
 
@@ -82,11 +100,39 @@ Each span will also have the following tags:
 
 If a `qualifier` is present in the ARN, depending on the resource type, either `aws_function_qualifier` or `event_source_mappings` will be tagged.
 
-## Manual Tracing
+## Metrics
+
+When metrics are enabled, the following datapoints are sent to SignalFx:
+
+| Metric Name            | Type    | Description                                                     |
+| ---                    | ---     | ---                                                             |
+| `function.invocations` | Counter | Count number of Lambda invocations                              |
+| `function.cold_starts` | Counter | Count number of cold starts                                     |
+| `function.errors`      | Counter | Count number of errors captured from underlying Lambda handler  |
+| `function.duration`    | Gauge   | Execution time of the underlying Lambda handler in milliseconds |
+
+Each datapoint has the following dimensions:
+- `metric_source`: `ruby-lambda-wrapper`
+- `lambda_arn`: the full ARN of the invocation
+- `aws_region`: the region that the function executed in
+- `aws_account_id`: id of the account this function ran for
+- `aws_function_name`: the function name set for this Lambda
+- `aws_function_version`: the function version
+- `aws_function_qualifier`: function version qualifier, which will be a version
+  or version alias if it is not an event source mapping invocation
+- `event_source_mappings`: function name if it is an event source mapping invocation
+- `aws_execution_env`: the name of the runtime environment running this function
+- `function_wrapper_version`: the version of this wrapper gem being used
+- `log_group_name`: log group for the function
+- `log_stream_name`: log stream for the instance
+
+## Manual Instrumentation
+
+### Tracing
 
 Manual tracing may be useful to get a better view into the function. The
 OpenTracing global tracer makes the tracer used by the wrapper available
-to when more specific instrumentation is desired.
+when more specific instrumentation is desired.
 
 ```ruby
 require 'opentracing'
@@ -102,6 +148,15 @@ These manually created spans will automatically be nested, with the span for the
 Lambda handler as the parent.
 
 For more examples of usage, please see [opentracing-ruby](https://github.com/opentracing/opentracing-ruby).
+
+### Metrics
+
+Your function can be manually instrumented to send additional metrics using the
+already configured SignalFx client.
+
+```ruby
+SignalFx::Lambda::Metrics.client.send(counters: ..., gauges: ..., cumulative_counters: ...)
+```
 
 ## Development
 
