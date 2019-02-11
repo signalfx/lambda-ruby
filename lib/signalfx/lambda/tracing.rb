@@ -8,7 +8,7 @@ module SignalFx
     module Tracing
       class Error < StandardError; end
 
-      def self.wrap_function(event, context, &block)
+      def self.wrap_function(event:, context:, &block)
         init_tracer(event) if !@tracer # avoid initializing except on a cold start
 
         scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}",

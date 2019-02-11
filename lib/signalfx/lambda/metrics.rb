@@ -7,8 +7,9 @@ module SignalFx
 
       def self.wrap_function(event:, context:)
         cold_start = @client.nil?
-
         init_client unless @client
+        counters = []
+        gauges = []
 
         dimensions = populate_dimensions(context)
 
@@ -17,16 +18,17 @@ module SignalFx
         response = yield event: event, context: context
         end_time = Time.now
 
-        duration = (end_time - start_time).strftime('%s%L') # duration in ms
+        duration = ((end_time - start_time) * 1000) # duration in ms
+        end_time = end_time.strftime('%s%L')
 
-        counters = [
+        counters.push(
           { 
             :metric => 'function.invocations',
             :value => 1,
             :timestamp => end_time,
             :dimensions => dimensions
           }
-        ]
+        )
 
         counters.push(
           {
@@ -60,21 +62,20 @@ module SignalFx
         raise
       ensure
         # send metrics before leaving this block
-        @client.send(gauges: gauges, counter: counters)
+        @client.send(gauges: gauges, counters: counters) if @client
       end
 
-      def populate_dimensions(context)
-        dimensions = []
-        SignalFx::Lambda.fields.each do |key, val|
-          dimensions.push({ :key => key, :value => value })
+      def self.populate_dimensions(context)
+        SignalFx::Lambda.fields.map do |key, val|
+          { :key => key, :value => val }
         end
       end
 
       def self.init_client
         access_token = ENV['SIGNALFX_ACCESS_TOKEN']
-        ingest_url = ENV['SIGNALFX_INGEST_URL']
+        ingest_endpoint = ENV['SIGNALFX_METRICS_URL']
 
-        @client = SignalFx.new access_token, ingest_endpoint: 'http://localhost:9922'
+        @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint
       end
     end
   end
