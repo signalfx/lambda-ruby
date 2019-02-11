@@ -57,7 +57,7 @@ module SignalFx
 
       # the arn packs useful data, including region, account id, resource type,
       # and qualifier
-      def fields_from_arn(arn)
+      def fields_from_arn(arn = '')
         _, _, _, region, account_id, resource_type, _, qualifier = arn.split(':')
 
         fields = {

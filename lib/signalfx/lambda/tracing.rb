@@ -58,7 +58,7 @@ module SignalFx
           headers['X-SF-Token'] = access_token if !access_token.empty?
           encoder = Jaeger::Client::Encoders::ThriftEncoder.new(service_name: service_name)
           sender = Jaeger::Client::HttpSender.new(url: ingest_url, headers: headers, encoder: encoder, logger: Logger.new(STDOUT))
-          @reporter = Jaeger::Client::Reporters::RemoteReporter.new(sender: sender, flush_interval: 1)
+          @reporter = Jaeger::Client::Reporters::RemoteReporter.new(sender: sender, flush_interval: 100)
 
           # propagation format configuration
           injectors = {
