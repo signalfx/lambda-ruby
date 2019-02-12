@@ -77,7 +77,7 @@ module SignalFx
 
         def init_client
           access_token = ENV['SIGNALFX_ACCESS_TOKEN']
-          ingest_endpoint = ENV['SIGNALFX_METRICS_URL']
+          ingest_endpoint = ENV['SIGNALFX_METRICS_URL'] || ENV['SIGNALFX_ENDPOINT_URL'] || 'https://ingest.signalfx.com'
 
           @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint
         end

@@ -45,6 +45,18 @@ It also takes these optional arguments:
 - `metrics`: Enable reporting of metrics. Default: `true`
 - `tracing`: Enable tracing. Default: `true`
 
+### Endpoint configuration
+
+If metrics and traces should be reported to a common endpoint, as is the case
+when using the Smart Gateway, a single variable can be used:
+
+```
+SIGNALFX_ENDPOINT_URL = <gateway_url>
+```
+
+If the component-specific URLs below are set, they will take precedence over
+`SIGNALFX_ENDPOINT_URL` for those components.
+
 ### Tracer configuration
 
 The tracer used by the function is configured through environment variables:

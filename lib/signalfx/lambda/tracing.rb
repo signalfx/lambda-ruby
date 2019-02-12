@@ -49,7 +49,7 @@ module SignalFx
 
         def init_tracer(event)
           access_token = ENV['SIGNALFX_ACCESS_TOKEN']
-          ingest_url = ENV['SIGNALFX_TRACING_URL'] || 'https://ingest.signalfx.com/v1/trace'
+          ingest_url = ENV['SIGNALFX_TRACING_URL'] || ENV['SIGNALFX_ENDPOINT_URL'] || 'https://ingest.signalfx.com/v1/trace'
           service_name = ENV['SIGNALFX_SERVICE_NAME'] || event.function_name
           @span_prefix = ENV['SIGNALFX_SPAN_PREFIX'] || 'lambda_ruby_'
 
