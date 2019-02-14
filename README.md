@@ -91,7 +91,7 @@ The metrics URL will default to `https://ingest.signalfx.com` when not configure
 
 ## Trace and tags
 
-The wrapper will generate a single span per function invocation. This span will
+The wrapper will generate a trace per function invocation. The parent span will
 be named with the pattern  `lambda_ruby_<function_name>`. The span prefix can be
 optionally configured with the `SIGNALFX_SPAN_PREFIX` environment variable:
 
