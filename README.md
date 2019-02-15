@@ -48,10 +48,10 @@ It also takes these optional arguments:
 ### Endpoint configuration
 
 If metrics and traces should be reported to a common endpoint, as is the case
-when using the Smart Gateway, a single variable can be used:
+when using the Smart Gateway, a single environment variable should be set:
 
 ```
-SIGNALFX_ENDPOINT_URL = <gateway_url>
+SIGNALFX_ENDPOINT_URL=<gateway_url>
 ```
 
 If the component-specific URLs below are set, they will take precedence over
@@ -84,8 +84,8 @@ SIGNALFX_ACCESS_TOKEN
 SIGNALFX_METRICS_URL
 ```
 
-When `SIGNALFX_METRICS_URL` is pointing to a Gateway in production, the access
-token is not needed.
+When `SIGNALFX_METRICS_URL` is pointing to a Smart Gateway in production, the
+access token is not needed.
 
 The metrics URL will default to `https://ingest.signalfx.com` when not configured.
 
