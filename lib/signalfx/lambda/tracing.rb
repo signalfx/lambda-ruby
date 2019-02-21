@@ -8,103 +8,75 @@ module SignalFx
     module Tracing
       class Error < StandardError; end
 
-      def self.wrap_function(event, context, &block)
-        init_tracer(event) if !@tracer # avoid initializing except on a cold start
+      class << self
+        attr_accessor :tracer, :reporter
 
-        scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}", tags: build_tags(context))
+        def wrap_function(event:, context:, &block)
+          init_tracer(event) if !@tracer # avoid initializing except on a cold start
 
-        response = yield event: event, context: context
-        scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
+          tags = SignalFx::Lambda.fields
+          tags['component'] = SignalFx::Lambda::COMPONENT
 
-        response
-      rescue => error
-        if scope
-          scope.span.set_tag("error", true)
-          scope.span.log_kv(key: "message", value: error.message)
-        end
+          scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}",
+                                                tags: tags)
 
-        # pass this error up
-        raise
-      ensure
-        scope.close if scope
+          response = yield event: event, context: context
+          scope.span.set_tag("http.status_code", response[:statusCode]) if response[:statusCode]
 
-        # flush the spans before leaving the execution context
-        @reporter.flush
-      end
-
-      def self.wrapped_handler(event:, context:)
-        wrap_function(event, context, &@handler)
-      end
-
-      def self.build_tags(context)
-        tags = {
-          'component' => 'ruby-lambda-wrapper',
-          'lambda_arn' => context.invoked_function_arn,
-          'aws_request_id' => context.aws_request_id,
-          'aws_function_name' => context.function_name,
-          'aws_function_version' => context.function_version,
-          'aws_execution_env' => ENV['AWS_EXECUTION_ENV'],
-          'log_group_name' => context.log_group_name,
-          'log_stream_name' => context.log_stream_name,
-          'function_wrapper_version' => "signalfx-lambda-#{SignalFx::Lambda::VERSION}",
-        }
-
-        tags = tags.merge(tags_from_arn(context.invoked_function_arn))
-      end
-
-      def self.tags_from_arn(arn)
-        _, _, _, region, account_id, resource_type, _, qualifier = arn.split(':')
-
-        tags = {
-          'aws_region' => region,
-          'aws_account_id' => account_id,
-        }
-
-        if qualifier
-          case resource_type
-          when 'function'
-            tags['aws_function_qualifier'] = qualifier
-          when 'event-source-mappings'
-            tags['event_source_mappings'] = qualifier
+          response
+        rescue => error
+          if scope
+            scope.span.set_tag("error", true)
+            scope.span.log_kv(key: "message", value: error.message)
           end
+
+          # pass this error up
+          raise
+        ensure
+          scope.close if scope
+
+          # flush the spans before leaving the execution context
+          @reporter.flush
         end
 
-        tags
-      end
+        def wrapped_handler(event:, context:)
+          wrap_function(event, context, &@handler)
+        end
 
-      def self.register_handler(&handler)
-        @handler = handler
-      end
+        def register_handler(&handler)
+          @handler = handler
+        end
 
-      def self.init_tracer(event)
-        access_token = ENV['SIGNALFX_ACCESS_TOKEN']
-        ingest_url = ENV['SIGNALFX_INGEST_URL'] || 'https://ingest.signalfx.com/v1/trace'
-        service_name = ENV['SIGNALFX_SERVICE_NAME'] || event.function_name
-        @span_prefix = ENV['SIGNALFX_SPAN_PREFIX'] || 'lambda_ruby_'
+        def init_tracer(event)
+          access_token = ENV['SIGNALFX_ACCESS_TOKEN']
+          ingest_url = ENV['SIGNALFX_TRACING_URL'] || ENV['SIGNALFX_ENDPOINT_URL'] || 'https://ingest.signalfx.com/v1/trace'
+          service_name = ENV['SIGNALFX_SERVICE_NAME'] || event.function_name
+          @span_prefix = ENV['SIGNALFX_SPAN_PREFIX'] || 'lambda_ruby_'
 
-        # configure the trace reporter
-        headers = { }
-        headers['X-SF-Token'] = access_token if !access_token.empty?
-        encoder = Jaeger::Client::Encoders::ThriftEncoder.new(service_name: service_name)
-        sender = Jaeger::Client::HttpSender.new(url: ingest_url, headers: headers, encoder: encoder, logger: Logger.new(STDOUT))
-        @reporter = Jaeger::Client::Reporters::RemoteReporter.new(sender: sender, flush_interval: 1)
+          # configure the trace reporter
+          headers = { }
+          headers['X-SF-Token'] = access_token if !access_token.empty?
+          encoder = Jaeger::Client::Encoders::ThriftEncoder.new(service_name: service_name)
+          sender = Jaeger::Client::HttpSender.new(url: ingest_url, headers: headers, encoder: encoder, logger: Logger.new(STDOUT))
+          @reporter = Jaeger::Client::Reporters::RemoteReporter.new(sender: sender, flush_interval: 100)
 
-        # propagation format configuration
-        injectors = {
-          OpenTracing::FORMAT_TEXT_MAP => [Jaeger::Client::Injectors::B3RackCodec]
-        }
-        extractors = {
-          OpenTracing::FORMAT_TEXT_MAP => [SignalFx::Lambda::Tracing::B3TextMapCodec]
-        }
+          # propagation format configuration
+          injectors = {
+            OpenTracing::FORMAT_TEXT_MAP => [Jaeger::Client::Injectors::B3RackCodec]
+          }
+          extractors = {
+            OpenTracing::FORMAT_TEXT_MAP => [SignalFx::Lambda::Tracing::B3TextMapCodec]
+          }
 
-        OpenTracing.global_tracer = Jaeger::Client.build(
-          service_name: service_name,
-          reporter: @reporter,
-          injectors: injectors,
-          extractors: extractors
-        )
+          OpenTracing.global_tracer = Jaeger::Client.build(
+            service_name: service_name,
+            reporter: @reporter,
+            injectors: injectors,
+            extractors: extractors
+          )
 
-        @tracer = OpenTracing.global_tracer
+          @tracer = OpenTracing.global_tracer
+        end
       end
     end
   end
