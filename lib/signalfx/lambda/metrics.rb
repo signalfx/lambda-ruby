@@ -72,7 +72,7 @@ module SignalFx
           dimensions = SignalFx::Lambda.fields.map do |key, val|
             { :key => key, :value => val }
           end
-          dimensions.merge!({ :key => 'metric_source', :value => SignalFx::Lambda::COMPONENT })
+          dimensions.push({ :key => 'metric_source', :value => SignalFx::Lambda::COMPONENT })
         end
 
         def init_client
