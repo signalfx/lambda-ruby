@@ -49,7 +49,7 @@ module SignalFx
 
         def init_tracer(event)
           access_token = ENV['SIGNALFX_ACCESS_TOKEN']
-          ingest_url = ENV['SIGNALFX_TRACING_URL'] || ENV['SIGNALFX_ENDPOINT_URL'] || 'https://ingest.signalfx.com/v1/trace'
+          ingest_url = get_ingest_url
           service_name = ENV['SIGNALFX_SERVICE_NAME'] || event.function_name
           @span_prefix = ENV['SIGNALFX_SPAN_PREFIX'] || 'lambda_ruby_'
 
@@ -76,6 +76,12 @@ module SignalFx
           )
 
           @tracer = OpenTracing.global_tracer
+        end
+
+        def get_ingest_url
+          return ENV['SIGNALFX_TRACING_URL'] if ENV.key? 'SIGNALFX_TRACING_URL'
+          return ENV['SIGNALFX_ENDPOINT_URL'] + '/v1/trace' if ENV.key? 'SIGNALFX_ENDPOINT_URL'
+          return 'https://ingest.signalfx.com/v1/trace'
         end
       end
     end
