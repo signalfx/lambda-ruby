@@ -57,6 +57,10 @@ SIGNALFX_ENDPOINT_URL=<gateway_url>
 If the component-specific URLs below are set, they will take precedence over
 `SIGNALFX_ENDPOINT_URL` for those components.
 
+By default, the metrics and traces will be reported to the `us0` realm. If you are
+not in this realm you will need to set the `SIGNALFX_TRACING_URL` and
+`SIGNALFX_METRICS_URL` environment variables, as described below.
+
 ### Tracer configuration
 
 The tracer used by the function is configured through environment variables:
@@ -71,6 +75,12 @@ In production, `SIGNALFX_TRACING_URL` should be pointing to your [Smart Gateway]
 When pointing to the Smart Gateway, an access token is not needed. When not
 configured, the ingest URL defaults to `https://ingest.signalfx.com/v1/trace`,
 which requires an access token to be configured.
+
+The default `SIGNALFX_TRACING_URL` points to the `us0` realm. If you are not in
+this realm, you will need to set the environment variable to the correct realm
+ingest endpoint (https://ingest.{REALM}.signalfx.com/v1/trace). To determine what realm
+you are in, check your profile page in the SignalFx web application (click the
+avatar in the upper right and click My Profile).
 
 The tracer will be persisted across invocations to the same context, reducing
 the time needed for tracer initialization.
@@ -88,6 +98,12 @@ When `SIGNALFX_METRICS_URL` is pointing to a Smart Gateway in production, the
 access token is not needed.
 
 The metrics URL will default to `https://ingest.signalfx.com` when not configured.
+
+The default `SIGNALFX_METRICS_URL` points to the `us0` realm. If you are not in
+this realm, you will need to set the environment variable to the correct realm
+ingest endpoint (https://ingest.{REALM}.signalfx.com). To determine what realm
+you are in, check your profile page in the SignalFx web application (click the
+avatar in the upper right and click My Profile).
 
 ## Trace and tags
 
