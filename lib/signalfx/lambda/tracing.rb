@@ -16,6 +16,7 @@ module SignalFx
 
           tags = SignalFx::Lambda.fields
           tags['component'] = SignalFx::Lambda::COMPONENT
+          tags['span.kind'] = 'server'
 
           scope = OpenTracing.start_active_span("#{@span_prefix}#{context.function_name}",
                                                 tags: tags)
