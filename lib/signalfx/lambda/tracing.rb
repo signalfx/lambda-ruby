@@ -12,7 +12,7 @@ module SignalFx
         attr_accessor :tracer, :reporter
 
         def wrap_function(event:, context:, &block)
-          init_tracer(event) if !@tracer # avoid initializing except on a cold start
+          init_tracer(context) if !@tracer # avoid initializing except on a cold start
 
           tags = SignalFx::Lambda.fields
           tags['component'] = SignalFx::Lambda::COMPONENT
@@ -41,17 +41,17 @@ module SignalFx
         end
 
         def wrapped_handler(event:, context:)
-          wrap_function(event, context, &@handler)
+          wrap_function(event: event, context: context, &@handler)
         end
 
         def register_handler(&handler)
           @handler = handler
         end
 
-        def init_tracer(event)
+        def init_tracer(context)
           access_token = ENV['SIGNALFX_ACCESS_TOKEN']
           ingest_url = get_ingest_url
-          service_name = ENV['SIGNALFX_SERVICE_NAME'] || event.function_name
+          service_name = ENV['SIGNALFX_SERVICE_NAME'] || context.function_name
           @span_prefix = ENV['SIGNALFX_SPAN_PREFIX'] || 'lambda_ruby_'
 
           # configure the trace reporter

@@ -1,3 +1,4 @@
+require 'set'
 require 'signalfx'
 
 module SignalFx
@@ -6,7 +7,7 @@ module SignalFx
       class Error < StandardError; end
 
       class << self
-        attr_accessor :client
+        attr_accessor :client, :ephemeral_dimensions
 
         def wrap_function(event:, context:)
           cold_start = @client.nil?
@@ -69,7 +70,9 @@ module SignalFx
         end
 
         def populate_dimensions(context)
-          dimensions = SignalFx::Lambda.fields.map do |key, val|
+          dimensions = SignalFx::Lambda.fields
+                           .reject {|key, _| Metrics.ephemeral_dimensions.include?(key)}
+                           .map do |key, val|
             { :key => key, :value => val }
           end
           dimensions.push({ :key => 'metric_source', :value => SignalFx::Lambda::COMPONENT })
@@ -82,6 +85,9 @@ module SignalFx
           @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint
         end
       end
+
+      self.ephemeral_dimensions = Set['aws_request_id', 'log_stream_name']
+
     end
   end
 end

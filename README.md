@@ -23,8 +23,10 @@ Add this line to the top of your file:
 require 'signalfx/lambda'
 ```
 
-To use the wrapper, register `source.SignalFx::Lambda::Tracing.wrapped_handler`
-in the console, where `source` is your Ruby source file. Then somewhere after
+To use the wrapper, put `source.SignalFx::Lambda.wrapped_handler` as the handler
+in the AWS console, where `source` is your Ruby source file (when you use AWS online
+code editor the `source` is `lambda_function` and a complete handler value is
+`lambda_function.SignalFx::Lambda.wrapped_handler`). Then somewhere after
 your handler function definition, the function can be registered to be
 automatically traced:
 
