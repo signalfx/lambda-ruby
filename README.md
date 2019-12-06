@@ -107,6 +107,9 @@ ingest endpoint (https://ingest.{REALM}.signalfx.com). To determine what realm
 you are in, check your profile page in the SignalFx web application (click the
 avatar in the upper right and click My Profile).
 
+Send operation timeout (in seconds) can be specified with `SIGNALFX_SEND_TIMEOUT`
+environment variable. Default value is 1 second.
+ 
 ## Trace and tags
 
 The wrapper will generate a trace per function invocation. The parent span will

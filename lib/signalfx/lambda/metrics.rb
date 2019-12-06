@@ -81,8 +81,9 @@ module SignalFx
         def init_client
           access_token = ENV['SIGNALFX_ACCESS_TOKEN']
           ingest_endpoint = ENV['SIGNALFX_METRICS_URL'] || ENV['SIGNALFX_ENDPOINT_URL'] || 'https://ingest.signalfx.com'
+          timeout = ENV['SIGNALFX_SEND_TIMEOUT'] || 1
 
-          @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint
+          @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint, timeout: timeout
         end
       end
 
