@@ -1,8 +1,11 @@
+require 'set'
 require 'signalfx'
 
 module SignalFx
   module Lambda
     module Metrics
+      @@ephemeral_dimensions = Set['aws_request_id', 'log_stream_name']
+
       class Error < StandardError; end
 
       class << self
@@ -69,7 +72,9 @@ module SignalFx
         end
 
         def populate_dimensions(context)
-          dimensions = SignalFx::Lambda.fields.map do |key, val|
+          dimensions = SignalFx::Lambda.fields
+                           .reject {|key, _| @@ephemeral_dimensions.include?(key)}
+                           .map do |key, val|
             { :key => key, :value => val }
           end
           dimensions.push({ :key => 'metric_source', :value => SignalFx::Lambda::COMPONENT })
@@ -78,8 +83,9 @@ module SignalFx
         def init_client
           access_token = ENV['SIGNALFX_ACCESS_TOKEN']
           ingest_endpoint = ENV['SIGNALFX_METRICS_URL'] || ENV['SIGNALFX_ENDPOINT_URL'] || 'https://ingest.signalfx.com'
+          timeout = ENV['SIGNALFX_SEND_TIMEOUT'] || 1
 
-          @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint
+          @client = SignalFx.new access_token, ingest_endpoint: ingest_endpoint, timeout: timeout
         end
       end
     end
