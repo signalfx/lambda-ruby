@@ -67,20 +67,24 @@ gem 'signalfx-lambda'
 $ bundle install --path vendor/bundle
 ```
 
-## Usage
+## Step 2: Wrap a function 
 
-Add this line to the top of your file:
+The steps in this section can be performed in the AWS online code editor for your newly created Lambda function or in your application's Gemfile. As a result, these instructions are generic to apply to both user types. 
+
+1. Add the following line to the top of your file: 
 
 ```ruby
 require 'signalfx/lambda'
 ```
 
-To use the wrapper, put `source.SignalFx::Lambda.wrapped_handler` as the handler
-in the AWS console, where `source` is your Ruby source file (when you use AWS online
-code editor the `source` is `lambda_function` and a complete handler value is
-`lambda_function.SignalFx::Lambda.wrapped_handler`). Then somewhere after
-your handler function definition, the function can be registered to be
-automatically traced:
+2. Set `source.SignalFx::Lambda.wrapped_handler` as the handler. 
+
+Replace `source` with your Ruby source file. If you use the AWS online code editor, `lambda_function` is your `source`. 
+
+A complete handler value is `lambda_function.SignalFx::Lambda.wrapped_handler`. 
+
+
+3. In the AWS online code editor or in the Gemfile, after the handler function definition, register the function to be automatically traced:
 
 ```ruby
 # this is the original handler
@@ -90,6 +94,8 @@ end
 
 SignalFx::Lambda.register_handler(metrics: true, tracing: true, &method(:handler))
 ```
+
+4. For your reference: 
 
 `register_handler` will accept any block.
 
