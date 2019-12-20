@@ -1,19 +1,71 @@
-# SignalFx::Lambda
+# SignalFx Ruby Lambda Wrapper
 
-This gem provides a simplified way to get metrics and traces from AWS Lambda
-functions written for the Ruby 2.5 runtime.
+## Overview
 
-## Installation
+You can use this document to add a SignalFx wrapper to your AWS Lambda for Ruby. 
 
-Add this line to your application's Gemfile:
+The SignalFx Ruby Lambda Wrapper wraps around an AWS Lambda Ruby function handler, which allows metrics and traces to be sent to SignalFx.
+
+At a high-level, to add a SignalFx Ruby Lambda wrapper, you can package the code yourself, or you can use a Lambda layer containing the wrapper and then attach the layer to a Lambda function.
+
+To learn more about Lambda Layers, please visit the AWS documentation site and see [AWS Lambda Layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html).
+
+## Step 1: Add the Lambda wrapper in AWS
+
+To add the SignalFx wrapper, you have the following options:
+   
+   * Option 1: In AWS, create a Lambda function, then attach a SignalFx-hosted layer with a wrapper.
+      * If you are already using Lambda layers, then SignalFx recommends that you follow this option. 
+      * In this option, you will use a Lambda layer created and hosted by SignalFx.
+   * Option 2: In AWS, create a Lambda function, then create and attach a layer based on a SignalFx SAM (Serverless Application Model) template.
+      * If you are already using Lambda layers, then SignalFx also recommends that you follow this option. 
+      * In this option, you will choose a SignalFx template, and then deploy a copy of the layer.
+   * Option 3: Use the wrapper as a regular dependency, and then create a Lambda function based on your artifact containing both code and dependencies.   
+
+### Option 1: Create a Lambda function, then attach the SignalFx-hosted Lambda layer
+
+In this option, you will use a Lambda layer created and hosted by SignalFx.
+
+1. To verify compatibility, review the list of supported regions. See [Lambda Layer Versions](https://github.com/signalfx/lambda-layer-versions/blob/master/ruby/RUBY.md).
+2. Open your AWS console. 
+3. In the landing page, under **Compute**, click **Lambda**.
+4. Click **Create function** to create a layer with SignalFx's capabilities.
+5. Click **Author from scratch**.
+6. In **Function name**, enter a descriptive name for the wrapper. 
+7. In **Runtime**, select the desired language.
+8. Click **Create function**. 
+9. Click on **Layers**, then add a layer.
+10. Mark **Provide a layer version**.
+11. Enter an ARN number. 
+   * To locate the ARN number, see [Lambda Layer Versions](https://github.com/signalfx/lambda-layer-versions/blob/master/ruby/RUBY.md).
+
+### Option 2: Create a Lambda function, then create and attach a layer based on a SignalFx template
+
+In this option, you will choose a SignalFx template, and then deploy a copy of the layer.
+
+1. Open your AWS console. 
+2. In the landing page, under **Compute**, click **Lambda**.
+3. Click **Create function** to create a layer with SignalFx's capabilities.
+4. Click **Browse serverless app repository**.
+5. Click **Public applications**.
+6. In the search field, enter and select **signalfx-lambda-ruby-wrapper**.
+7. Review the template, permissions, licenses, and then click **Deploy**.
+    * A copy of the layer will now be deployed into your account.
+8. Return to the previous screen to add a layer to the function, select from list of runtime compatible layers, and then select the name of the copy. 
+
+### Option 3: Install the wrapper package 
+
+1. Add the following line to your application's Gemfile:
 
 ```ruby
 gem 'signalfx-lambda'
 ```
 
-And then execute:
+2. Execute: 
 
-    $ bundle install --path vendor/bundle
+```
+$ bundle install --path vendor/bundle
+```
 
 ## Usage
 
