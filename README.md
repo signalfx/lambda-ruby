@@ -71,7 +71,7 @@ Proceed with packaging and deployment as usual.
 
 ## Step 2: Locate and set the ingest endpoint
 
-By default, this function wrapper will send data to the us0 realm. As a result, if you are not in us0 realm and you want to use the ingest endpoint directly, then you must explicitly set your realm. To set your realm, use a subdomain, such as ingest.us1.signalfx.com or ingest.eu0.signalfx.com.
+By default, this function wrapper will send data to the us0 realm. As a result, if you are not in us0 realm and you want to use the ingest endpoint directly, then you must explicitly set your realm. To set your realm, when configuring variables in next step, make sure to use a subdomain, such as ingest.us1.signalfx.com or ingest.eu0.signalfx.com.
 
 To locate your realm:
 
@@ -82,59 +82,51 @@ To locate your realm:
 ## Step 3: Set environment variables
 
 1. If you are using Smart Gateway for both metrics and traces, skip this step. Otherwise, set SIGNALFX_ACCESS_TOKEN with your correct access token. Review the following example. 
-
-```bash
-    SIGNALFX_ACCESS_TOKEN=access token
-```
-    
+    ```bash
+        SIGNALFX_ACCESS_TOKEN=access token
+    ```
 2. If you use POPS, Smart Gateway, or want to ingest directly from a realm other than us0, then you must set at least one endpoint variable. (For environment variables, SignalFx defaults to the us0 realm. As a result, if you are not in the us0 realm, you may need to set your environment variables.) There are two options: 
-
-**Option 1**
-
-You can update ``SIGNALFX_ENDPOINT_URL`` where both metrics and traces will be sent to the gateway address. Note that the path ``/v1/trace`` will be automatically added to the endpoint for traces.
-
-```bash
-    SIGNALFX_ENDPOINT_URL=http://<my_gateway>:8080
-```
-
-**Option 2**
-
-You can update ``SIGNALFX_ENDPOINT_URL`` and ``SIGNALFX_METRICS_URL`` where traces will be sent to the gateway and metrics will go through POPS, respectively. 
-
-```bash
-    SIGNALFX_METRICS_URL=https://ingest.signalfx.com
-    SIGNALFX_ENDPOINT_URL=http://<my_gateway>:8080
-```
-
-
-The default `SIGNALFX_METRICS_URL` points to the `us0` realm. If you are not in this realm, use correct subdomain (https://ingest.{REALM}.signalfx.com). 
-Step 2 outlines how to locate the realm.
+    **Option 1**
+    
+    You can update ``SIGNALFX_ENDPOINT_URL`` where both metrics and traces will be sent to the gateway address. Note that the path ``/v1/trace`` will be automatically added to the endpoint for traces.
+    
+    ```bash
+        SIGNALFX_ENDPOINT_URL=http://<my_gateway>:8080
+    ```
+    **Option 2**
+    
+    You can update ``SIGNALFX_ENDPOINT_URL`` and ``SIGNALFX_METRICS_URL`` where traces will be sent to the gateway and metrics will go through POPS, respectively. 
+    
+    ```bash
+        SIGNALFX_METRICS_URL=https://ingest.signalfx.com
+        SIGNALFX_ENDPOINT_URL=http://<my_gateway>:8080
+    ```
+    The default `SIGNALFX_METRICS_URL` points to the `us0` realm. If you are not in this realm, use correct subdomain (https://ingest.{REALM}.signalfx.com). 
+    Step 2 outlines how to locate the realm.
 
 4. (Optional) Set additional environment variables for metrics configuration.
-
-Send operation timeout (in seconds) can be specified with `SIGNALFX_SEND_TIMEOUT`
-environment variable. Default value is 1 second.
-
-```bash
-   SIGNALFX_SEND_TIMEOUT=1
-```
-     
+   Send operation timeout (in seconds) can be specified with `SIGNALFX_SEND_TIMEOUT`
+   environment variable. Default value is 1 second.
+   
+   ```bash
+      SIGNALFX_SEND_TIMEOUT=1
+    ```
 3. (Optional) Set additional environment variables for tracer configuration. Review the following examples.  
 
-```bash
-    SIGNALFX_SERVICE_NAME
-    SIGNALFX_TRACING_URL=tracing endpoint [ default: https://ingest.signalfx.com/v1/trace ]
-```
-In production, `SIGNALFX_TRACING_URL` should be pointing to your [Smart Gateway](https://docs.signalfx.com/en/latest/apm/apm-deployment/smart-gateway.html).
-When pointing to the Smart Gateway, an access token is not needed. When not
-configured, the tracing URL defaults to `https://ingest.signalfx.com/v1/trace`,
-which requires an access token to be configured.
-
-The default `SIGNALFX_TRACING_URL` points to the `us0` realm. If you are not in this realm, use correct subdomain (https://ingest.{REALM}.signalfx.com). 
-Step 2 outlines how to locate the realm.
-
-The tracer will be persisted across invocations to the same context, reducing
-the time needed for tracer initialization.
+    ```bash
+        SIGNALFX_SERVICE_NAME
+        SIGNALFX_TRACING_URL=tracing endpoint [ default: https://ingest.signalfx.com/v1/trace ]
+    ```
+    In production, `SIGNALFX_TRACING_URL` should be pointing to your [Smart Gateway](https://docs.signalfx.com/en/latest/apm/apm-deployment/smart-gateway.html).
+    When pointing to the Smart Gateway, an access token is not needed. When not
+    configured, the tracing URL defaults to `https://ingest.signalfx.com/v1/trace`,
+    which requires an access token to be configured.
+    
+    The default `SIGNALFX_TRACING_URL` points to the `us0` realm. If you are not in this realm, use correct subdomain (https://ingest.{REALM}.signalfx.com). 
+    Step 2 outlines how to locate the realm.
+    
+    The tracer will be persisted across invocations to the same context, reducing
+    the time needed for tracer initialization.
     
 To learn more, see: 
   * [SignalFx Point of Presence Service (POPS)](https://docs.signalfx.com/en/latest/integrations/integrations-reference/integrations.signalfx.point.of.presence.service.(pops).html)
