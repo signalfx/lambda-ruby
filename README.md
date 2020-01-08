@@ -27,7 +27,7 @@ To add the SignalFx wrapper, you have the following options:
 
 In this option, you will use a Lambda layer created and hosted by SignalFx.
 
-1. To verify compatibility, review the list of supported regions. See [Lambda Layer Versions](https://github.com/signalfx/lambda-layer-versions/blob/master/python/RUBY.md).
+1. To verify compatibility, review the list of supported regions. See [Lambda Layer Versions](https://github.com/signalfx/lambda-layer-versions/blob/master/ruby/RUBY.md).
 2. Open your AWS console. 
 3. In the landing page, under **Compute**, click **Lambda**.
 4. Click **Create function** to create a layer with SignalFx's capabilities.
@@ -38,7 +38,7 @@ In this option, you will use a Lambda layer created and hosted by SignalFx.
 9. Click on **Layers**, then add a layer.
 10. Mark **Provide a layer version**.
 11. Enter an ARN number. 
-  * To locate the ARN number, see [Lambda Layer Versions](https://github.com/signalfx/lambda-layer-versions/blob/master/python/RUBY.md).
+  * To locate the ARN number, see [Lambda Layer Versions](https://github.com/signalfx/lambda-layer-versions/blob/master/ruby/RUBY.md).
 
 ### Option 2: Create a Lambda function, then create and attach a layer based on a SignalFx template
 
@@ -50,7 +50,7 @@ In this option, you will choose a SignalFx template, and then deploy a copy of t
 3. Click **Create function** to create a layer with SignalFx's capabilities.
 4. Click **Browse serverless app repository**.
 5. Click **Public applications**.
-6. In the search field, enter and select **signalfx-lambda-python-wrapper**.
+6. In the search field, enter and select **signalfx-lambda-ruby-wrapper**.
 7. Review the template, permissions, licenses, and then click **Deploy**.
     * A copy of the layer will now be deployed into your account.
 8. Return to the previous screen to add a layer to the function, select from list of runtime compatible layers, and then select the name of the copy. 
@@ -116,7 +116,7 @@ Send operation timeout (in seconds) can be specified with `SIGNALFX_SEND_TIMEOUT
 environment variable. Default value is 1 second.
 
 ```bash
-   SIGNALFX_SEND_TIMEOUT=1.0
+   SIGNALFX_SEND_TIMEOUT=1
 ```
      
 3. (Optional) Set additional environment variables for tracer configuration. Review the following examples.  
