@@ -87,13 +87,13 @@ To set your realm, when configuring variables, make sure to use a subdomain, suc
     ```bash
         SIGNALFX_ACCESS_TOKEN=access token
     ```
-2. If you use POPS, Smart Gateway, or want to ingest directly from a realm other than us0, then you must set at least one endpoint variable. (For environment variables, SignalFx defaults to the us0 realm. As a result, if you are not in the us0 realm, you may need to set your environment variables.) There are two options: 
+2. If you use Smart Gateway, or want to ingest directly from a realm other than us0, then you must set at least one endpoint variable. (For environment variables, SignalFx defaults to the us0 realm. As a result, if you are not in the us0 realm, you may need to set your environment variables.) There are two options: 
 
    * Option 1: You can update ``SIGNALFX_ENDPOINT_URL`` where both metrics and traces will be sent to the gateway address. Note that the path ``/v1/trace`` will be automatically added to the endpoint for traces. Review the following example. 
     ```bash
         SIGNALFX_ENDPOINT_URL=http://<my_gateway>:8080
     ```
-   * Option 2: You can update ``SIGNALFX_ENDPOINT_URL`` to send traces to the gateway and ``SIGNALFX_METRICS_URL`` to send metrics through POPS. Review the following example.   
+   * Option 2: You can update ``SIGNALFX_ENDPOINT_URL`` to send traces to the gateway and ``SIGNALFX_METRICS_URL`` to send metrics directly. Review the following example.   
     
     ```bash
         SIGNALFX_METRICS_URL=https://ingest.signalfx.com
@@ -117,7 +117,6 @@ For `SIGNALFX_TRACING_URL`:
    * By default, `SIGNALFX_TRACING_URL` points to the `us0` realm. If you are not in this realm, then you must use the correct subdomain (https://ingest.{REALM}.signalfx.com), as stated in Step 2. 
         
 To learn more, see: 
-  * [SignalFx Point of Presence Service (POPS)](https://docs.signalfx.com/en/latest/integrations/integrations-reference/integrations.signalfx.point.of.presence.service.(pops).html)
   * [Deploying the SignalFx Smart Gateway](https://docs.signalfx.com/en/latest/apm/apm-deployment/smart-gateway.html)        
 
 ## Step 4: Wrap a function
